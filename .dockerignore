@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+.npmrc
+Dockerfile
+.dockerignore
+*.md
+test
+k6
+.vscode
+.idea
+*.log

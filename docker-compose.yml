@@ -1,0 +1,46 @@
+services:
+  # Single-process Node (1 CPU core). Baseline for comparison.
+  single:
+    build: .
+    image: core-optimize
+    container_name: core-optimize-single
+    ports:
+      - '3001:3000'
+    environment:
+      CLUSTER_WORKERS: '1'
+
+  # Cluster mode — 4 Node workers across 4 CPU cores.
+  cluster:
+    build: .
+    image: core-optimize
+    container_name: core-optimize-cluster
+    ports:
+      - '3002:3000'
+    environment:
+      CLUSTER_WORKERS: '4'
+
+  # Load-test runner (k6 + Node report renderer). Runs both targets back to
+  # back and writes two separate HTML reports to ./k6 on the host.
+  # Gated behind a profile so plain `docker compose up` only starts the app.
+  #
+  # One-shot build + bench + auto-teardown:
+  #   docker compose --profile bench up --build \
+  #     --abort-on-container-exit --exit-code-from bench
+  bench:
+    build:
+      context: .
+      dockerfile: Dockerfile.bench
+    image: core-optimize-bench
+    container_name: core-optimize-bench
+    profiles: ['bench']
+    depends_on:
+      - single
+      - cluster
+    environment:
+      VUS: ${VUS:-10}
+      DURATION: ${DURATION:-30s}
+      SINGLE_URL: http://single:3000
+      CLUSTER_URL: http://cluster:3000
+      START_TIMEOUT_MS: '60000'
+    volumes:
+      - ./k6:/k6

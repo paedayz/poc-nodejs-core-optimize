@@ -1,0 +1,17 @@
+# Bench runner: needs both k6 (load generator) and Node (report renderer).
+#
+# k6 is not in node:20-alpine's apk repos, so we copy the official static
+# binary out of grafana/k6 (both images are alpine-based, and grafana/k6 is
+# multi-arch so this works on amd64 and arm64 hosts).
+FROM grafana/k6:0.51.0 AS k6
+
+FROM node:20-alpine
+COPY --from=k6 /usr/bin/k6 /usr/bin/k6
+
+WORKDIR /k6
+
+# load-test.js / report.js / bench-docker.js plus the result/report files
+# are bind-mounted from the host (./k6 -> /k6) at runtime, so nothing is
+# COPY'd here. This keeps the image generic and lets reports land on the
+# host without an extra copy step.
+ENTRYPOINT ["node", "/k6/bench-docker.js"]
